@@ -1,0 +1,75 @@
+import csv
+from datetime import datetime
+
+def ReadFile(FilePath):
+    with open(FilePath, 'r', encoding='utf-8') as File:
+        CsvReader = csv.reader(File)
+        CsvRows = list(CsvReader)
+    return CsvRows
+
+def TotalSpent(CsvReader):
+    Total = 0
+    for Row in CsvReader:
+        try:
+            Term = float(Row[1])
+            Description = Row[4] if len(Row) > 4 else ""
+            ExcludedTerms = ["ROBINHOOD", "ONLINE TRANSFER"]
+            if Term < 0 and not any(term in Description.upper() for term in ExcludedTerms):
+                Total += abs(Term)
+        except (ValueError, IndexError):
+            continue
+    return Total
+
+def DaysBetweenDates(StartDateStr, EndDateStr):
+    DateFormat = '%m/%d/%Y'
+    try:
+        StartDate = datetime.strptime(StartDateStr, DateFormat)
+        EndDate = datetime.strptime(EndDateStr, DateFormat)
+        TimeDifference = EndDate - StartDate
+        return abs(TimeDifference.days)
+    except ValueError as Error:
+        print(f"Error: The date format is incorrect. Please use 'MM/DD/YYYY'. Details: {Error}")
+        return None
+
+def ExtractDateRange(CsvReader):
+    Dates = []
+    DateFormat = '%m/%d/%Y'
+    for Row in CsvReader:
+        if len(Row) > 0:
+            try:
+                DateObj = datetime.strptime(Row[0], DateFormat)
+                Dates.append(DateObj)
+            except ValueError:
+                continue
+    if not Dates:
+        return None, None
+    EarliestDate = min(Dates).strftime(DateFormat)
+    LatestDate = max(Dates).strftime(DateFormat)
+    return EarliestDate, LatestDate
+
+def AverageSpentPerDay(TotalSpentAmount, DaysBetween):
+    if DaysBetween and DaysBetween > 0:
+        return TotalSpentAmount / DaysBetween
+    else:
+        return None
+
+def PrintResults(EarliestDate, LatestDate, TotalSpent, DaysBetween, AverageSpent):
+    print(f"Earliest Date: {EarliestDate}")
+    print(f"Latest Date: {LatestDate}")
+    print(f"Total Spent: ${TotalSpent:.2f}")
+    print(f"Days Between: {DaysBetween}")
+    print(f"Average Spent Per Day: ${AverageSpent:.2f}" if AverageSpent is not None else "Average Spent Per Day: N/A")
+
+def main():
+    FilePath = input("Enter the name of the CSV file: ")
+    CsvRows = ReadFile(FilePath)
+
+    EarliestDate, LatestDate = ExtractDateRange(CsvRows)
+    Total = TotalSpent(CsvRows)
+    Days = DaysBetweenDates(EarliestDate, LatestDate) if EarliestDate and LatestDate else None
+    Average = AverageSpentPerDay(Total, Days)
+
+    PrintResults(EarliestDate, LatestDate, Total, Days, Average)
+
+if __name__ == "__main__":
+    main()
